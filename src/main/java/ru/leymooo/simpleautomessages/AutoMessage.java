@@ -13,6 +13,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
@@ -48,11 +49,20 @@ public class AutoMessage {
     }
 
     public static AutoMessage fromConfiguration(ConfigurationNode configuration, ProxyServer server) throws ObjectMappingException {
+        List<String> ls = new ArrayList<>();
+        StringBuilder str;
+        for (ConfigurationNode msgs : configuration.getNode("messages").getChildrenMap().values()){
+            str = new StringBuilder();
+            for (String i : msgs.getList(TypeToken.of(String.class))) {
+                str.append(i).append("\n");
+            }
+            ls.add(str.toString());
+        }
         return new AutoMessage(server,
                 configuration.getNode("servers").getList(TypeToken.of(String.class)),
                 configuration.getNode("interval").getInt(0),
                 configuration.getNode("random").getBoolean(false),
-                configuration.getNode("messages").getList(TypeToken.of(String.class)));
+                ls);
     }
 
     private void parseServers(List<String> servers) {
@@ -130,23 +140,11 @@ public class AutoMessage {
 
     private static class MessageContainer {
 
-        private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand().toBuilder()
-            .extractUrls(Style.style().decoration(TextDecoration.UNDERLINED, true).build()).build();
-
-        private final static JsonParser JSON_PARSER = new JsonParser();
-
         private final String message;
         private final Component preCreated;
-        private final boolean isJson;
 
         public MessageContainer(String message) {
             this.message = message;
-            JsonElement parsed = null;
-            try {
-                parsed = JSON_PARSER.parse(message);
-            } catch (JsonSyntaxException ignored) {
-            }
-            isJson = parsed != null && !parsed.isJsonPrimitive();
             preCreated = (message.contains("%player%") || message.contains("%server%")) ? null : create(message);
         }
 
@@ -164,7 +162,7 @@ public class AutoMessage {
         }
 
         private Component create(String text) {
-            return isJson ? GsonComponentSerializer.gson().deserialize(text) : LEGACY_SERIALIZER.deserialize(text);
+            return MiniMessage.miniMessage().deserialize(text);
         }
 
     }
