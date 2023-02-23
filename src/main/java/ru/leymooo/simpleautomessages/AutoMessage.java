@@ -53,8 +53,13 @@ public class AutoMessage {
         StringBuilder str;
         for (ConfigurationNode msgs : configuration.getNode("messages").getChildrenMap().values()){
             str = new StringBuilder();
+            int n = 1;
             for (String i : msgs.getList(TypeToken.of(String.class))) {
-                str.append(i).append("\n");
+                str.append(i);
+                if (n < msgs.getList(TypeToken.of(String.class)).size()) {
+                    str.append("\n");
+                }
+                n++;
             }
             ls.add(str.toString());
         }
